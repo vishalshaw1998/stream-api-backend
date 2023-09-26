@@ -1,0 +1,6 @@
+Things that can be improved in this project
+
+- Authentication
+- Validation of the payload sent by the users
+- Taking DB string to env.
+- Using of types wherever not used
