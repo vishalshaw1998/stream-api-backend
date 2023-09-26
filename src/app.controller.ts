@@ -15,6 +15,7 @@ import { parser } from 'stream-json';
 import { InjectModel } from '@nestjs/mongoose';
 import { Temperature } from './schemas/temperature.schema';
 import { Model } from 'mongoose';
+import { BATCH_SIZE } from './constants/insert-batch-size';
 
 @Controller()
 export class AppController {
@@ -29,7 +30,6 @@ export class AppController {
     }),
   )
   async upload(@UploadedFile() file, @Body() body: { deviceId: string }) {
-    const BATCH_SIZE = 1000;
     let batch = [];
     const stream = createReadStream('/tmp/' + file.filename, {
       encoding: 'utf8',
@@ -63,19 +63,17 @@ export class AppController {
 
   @Get('temperatures')
   async getTemperatures(@Query('startAt') startAt: any) {
-    const time2016 = Math.floor(new Date(startAt).getTime() / 1000) * 1000;
+    const startTime = Math.floor(new Date(startAt).getTime() / 1000) * 1000;
 
-    const oneYearAgoOfTime2016 = time2016 - 365 * 24 * 60 * 60 * 1000;
-
-    console.log(time2016, oneYearAgoOfTime2016);
+    const endTime = startTime + 365 * 24 * 60 * 60 * 1000;
 
     // Calculate the moving averages for each interval
     const aggregationPipeline = [
       {
         $match: {
           timeStamp: {
-            $gte: oneYearAgoOfTime2016,
-            $lte: time2016,
+            $gte: startTime,
+            $lte: endTime,
           },
         },
       },
@@ -107,8 +105,6 @@ export class AppController {
       },
     ];
 
-    const result = await this.TemperatureModel.aggregate(aggregationPipeline);
-
-    return result;
+    return this.TemperatureModel.aggregate(aggregationPipeline);
   }
 }
